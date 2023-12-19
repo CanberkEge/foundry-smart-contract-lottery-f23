@@ -27,7 +27,7 @@ contract HelperConfig is Script {
     }
 
     // this is just for the testnet
-    function getSepoliaEthConfig() public view returns (NetworkConfig memory) {
+    function getSepoliaEthConfig() public pure returns (NetworkConfig memory) {
         return
             NetworkConfig({
                 entranceFee: 0.01 ether,
