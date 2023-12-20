@@ -76,6 +76,7 @@ contract Raffle is VRFConsumerBaseV2 {
     /** Events */
     event EnteredRaffle(address indexed player);
     event PickedWinner(address indexed winner);
+    event RequestedRaffleWinner(uint256 indexed requestId);
 
     constructor(
         uint256 entranceFee,
@@ -154,13 +155,17 @@ contract Raffle is VRFConsumerBaseV2 {
         }
 */
         s_raffleState = RaffleState.CALCULATING;
-        i_vrfCoordinator.requestRandomWords(
+        uint256 requestId = i_vrfCoordinator.requestRandomWords(
             i_gasLane, // gas lane
             i_subscriptionId,
             REQUEST_CONFIRMATIONS, // how many confirmations we want
             i_callbackGasLimit, // max gas that we want the callback function to do
             NUM_WORDS // number of more random numbers
         );
+
+        //Quiz... is this redundant?
+
+        emit RequestedRaffleWinner(requestId);
     }
 
     // CEI: Checks, Effects, Interactions
@@ -206,5 +211,9 @@ contract Raffle is VRFConsumerBaseV2 {
 
     function getPlayer(uint256 indexOfPlayer) external view returns (address) {
         return s_players[indexOfPlayer];
+    }
+
+    function getRecentWinner() external view returns (address) {
+        return s_recentWinner;
     }
 }
