@@ -38,7 +38,8 @@ contract RaffleTest is Test {
             gasLane,
             subscriptionId,
             callbackGasLimit,
-            link
+            link,
+
         ) = helperConfig.activeNetworkConfig();
         vm.deal(PLAYER, STARTING_USER_BALANCE);
     }
@@ -180,9 +181,16 @@ contract RaffleTest is Test {
     // fulfillRandomWords //////
     ///////////////////////////
 
+    modifier skipFork() {
+        if (block.chainid != 31337) {
+            return;
+        }
+        _;
+    }
+
     function testFulfillRandomWordsCanOnlyBeCalledAfterPerformUpkeep(
         uint256 randomRequestId
-    ) public raffleEnteredAndTimePassed {
+    ) public raffleEnteredAndTimePassed skipFork {
         // Arrange
         vm.expectRevert("nonexistent request");
         VRFCoordinatorV2Mock(vrfCoordinator).fulfillRandomWords(
@@ -194,6 +202,7 @@ contract RaffleTest is Test {
     function testFulfillRandomWordsPicksAWinnerResetsAndSendsMoney()
         public
         raffleEnteredAndTimePassed
+        skipFork
     {
         // Arrange
         uint256 additionalEntrants = 5;
@@ -204,14 +213,18 @@ contract RaffleTest is Test {
             i++
         ) {
             address player = address(uint160(i)); // address
-            hoax(player, 1 ether);
+            hoax(player, STARTING_USER_BALANCE);
             raffle.enterRaffle{value: entranceFee}();
         }
+
+        uint256 prize = entranceFee * (additionalEntrants + 1);
 
         vm.recordLogs();
         raffle.performUpkeep(""); // emit requestId
         Vm.Log[] memory entries = vm.getRecordedLogs();
         bytes32 requestId = entries[1].topics[1];
+
+        uint256 previousTimeStamp = raffle.getLastTimeStamp();
 
         // pretend chainlink vrf to get random number & pick winner
 
@@ -221,7 +234,19 @@ contract RaffleTest is Test {
         );
 
         // Assert
+
         assert(uint256(raffle.getRaffleState()) == 0);
         assert(raffle.getRecentWinner() != address(0));
+        assert(raffle.getLengthOfPlayers() == 0);
+        assert(previousTimeStamp < raffle.getLastTimeStamp());
+        // 10050000000000000000
+        // 60000000000000000
+
+        console.log(raffle.getRecentWinner().balance);
+        console.log(prize + STARTING_USER_BALANCE);
+        assert(
+            raffle.getRecentWinner().balance ==
+                STARTING_USER_BALANCE + prize - entranceFee
+        );
     }
 }
