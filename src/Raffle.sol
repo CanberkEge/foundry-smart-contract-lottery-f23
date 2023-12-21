@@ -106,6 +106,7 @@ contract Raffle is VRFConsumerBaseV2 {
         if (s_raffleState != RaffleState.OPEN) {
             revert Raffle__RaffleNotOpen();
         }
+
         s_players.push(payable(msg.sender));
         // 1. Makes migration easier
         // 2. Makes front end "indexing" easier
